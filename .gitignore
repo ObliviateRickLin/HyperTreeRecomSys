@@ -1,0 +1,42 @@
+# Large data files
+*.json
+amazon_books_data/
+amazon_books_processed/
+item_reviews.json
+user_reviews.json
+item_ratings.json
+
+# System and cache directories
+.cache/
+.keras/
+.nv/
+.huggingface/
+.alaya/
+.cursor-server/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# IDE
+.vscode/
+.idea/ 
