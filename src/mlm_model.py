@@ -228,7 +228,7 @@ def train_mlm_model(args):
     if args.freeze_pretrained:
         logger.info("冻结预训练模型参数，只训练新增token的embedding")
         # 获取embedding层
-        embedding_layer = mlm_model.base_model.bert.embeddings.word_embeddings
+        embedding_layer = mlm_model.base_model.distilbert.embeddings.word_embeddings
         
         # 获取预训练的token数量
         pretrained_token_count = len(tokenizer.base_tokenizer) - len(tokenizer.user_tokens) - len(tokenizer.item_tokens) - len(tokenizer.category_tokens)
