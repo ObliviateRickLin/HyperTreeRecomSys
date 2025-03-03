@@ -38,6 +38,10 @@ class AmazonDistilBertForMLM(nn.Module):
     def forward(self, input_ids, attention_mask=None, labels=None):
         """
         labels: 与 input_ids 同形状，对被mask位置是原token id，其他位置=-100
+        
+        Returns:
+            与HuggingFace Transformers兼容的输出格式：
+            - 包含loss和logits属性的对象(MaskedLMOutput)
         """
         hidden_states = self.base_model(input_ids, attention_mask=attention_mask)
         logits = self.mlm_head(hidden_states)  # (batch_size, seq_len, extended_vocab_size)
@@ -49,5 +53,11 @@ class AmazonDistilBertForMLM(nn.Module):
                 logits.view(-1, self.extended_vocab_size),
                 labels.view(-1)
             )
-            return (loss, logits)
-        return (logits,)
+        
+        # 返回一个与HuggingFace模型兼容的输出格式
+        # 使用带命名参数的类似命名元组的对象
+        return type('MaskedLMOutput', (), {
+            'loss': loss,
+            'logits': logits,
+            'hidden_states': hidden_states
+        })

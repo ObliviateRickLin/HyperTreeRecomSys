@@ -6,6 +6,14 @@ item_reviews.json
 user_reviews.json
 item_ratings.json
 
+# Data and model directories
+data/mlm_data/
+data/beauty_tokenizer/
+models/mlm/
+*.pth
+*.pt
+*.bin
+
 # System and cache directories
 .cache/
 .keras/
@@ -13,6 +21,10 @@ item_ratings.json
 .huggingface/
 .alaya/
 .cursor-server/
+
+# Weights & Biases
+wandb/
+*.wandb
 
 # Python
 __pycache__/
@@ -39,4 +51,23 @@ wheels/
 
 # IDE
 .vscode/
-.idea/ 
+.idea/
+
+# Logs and temporary files
+logs/
+*.log
+*.tmp
+tmp/
+temp/
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+*.ipynb
+
+# MacOS
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini 
