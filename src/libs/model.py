@@ -28,12 +28,22 @@ class AmazonDistilBertForMLM(nn.Module):
         super().__init__()
         self.base_model = base_model
         self.distilbert = base_model.distilbert
-        # 词表大小（含扩展后的 user/item/category）
+        
+        # 获取原始和扩展后的词表大小
+        self.original_vocab_size = 30522  # DistilBERT原始词表大小
         self.extended_vocab_size = self.distilbert.embeddings.word_embeddings.num_embeddings
-
+        
         hidden_size = self.distilbert.config.dim
-        # 线性映射到 extended_vocab_size
+        
+        # 创建新的预测头
         self.mlm_head = nn.Linear(hidden_size, self.extended_vocab_size, bias=False)
+        
+        # 如果可能，加载原始预测头的权重
+        if hasattr(base_model.distilbert, 'mlm_head'):
+            with torch.no_grad():
+                self.mlm_head.weight[:self.original_vocab_size].copy_(
+                    base_model.distilbert.mlm_head.weight[:self.original_vocab_size]
+                )
 
     def forward(self, input_ids, attention_mask=None, labels=None):
         """

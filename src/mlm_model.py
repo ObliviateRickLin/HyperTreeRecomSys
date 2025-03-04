@@ -224,40 +224,41 @@ def train_mlm_model(args):
     # 加载tokenizer和初始化模型
     tokenizer, mlm_model = load_model(args.tokenizer_path, args.resume_from, device=device)
     
-    # 冻结预训练参数，只训练新增的token embedding
-    if args.freeze_pretrained:
-        logger.info("冻结预训练模型参数，只训练新增token的embedding")
-        # 获取embedding层
-        embedding_layer = mlm_model.base_model.distilbert.embeddings.word_embeddings
-        
-        # 获取预训练的token数量
-        pretrained_token_count = len(tokenizer.base_tokenizer) - len(tokenizer.user_tokens) - len(tokenizer.item_tokens) - len(tokenizer.category_tokens)
-        logger.info(f"预训练token数量: {pretrained_token_count}")
-        logger.info(f"总token数量: {len(tokenizer.base_tokenizer)}")
-        
-        # 冻结所有参数
-        for param in mlm_model.parameters():
-            param.requires_grad = False
-        
-        # 解冻embedding中新增token的参数
-        embedding_layer.weight.requires_grad = True
-        # 创建一个mask，只有新增的token部分为True
-        weight_mask = torch.zeros_like(embedding_layer.weight, dtype=torch.bool)
-        weight_mask[pretrained_token_count:] = True
-        # 设置梯度mask
-        embedding_layer.weight.register_hook(lambda grad: grad * weight_mask)
-        
-        # 打印可训练参数数量
-        trainable_params = sum(p.numel() for p in mlm_model.parameters() if p.requires_grad)
-        total_params = sum(p.numel() for p in mlm_model.parameters())
-        logger.info(f"可训练参数: {trainable_params:,d} / {total_params:,d} ({trainable_params/total_params:.2%})")
-        
-        if args.use_wandb:
-            wandb.log({
-                "trainable_params": trainable_params,
-                "total_params": total_params,
-                "trainable_ratio": trainable_params/total_params
-            })
+    # 冻结基础模型参数
+    for param in mlm_model.base_model.parameters():
+        param.requires_grad = False
+    
+    # 获取embedding层
+    embedding_layer = mlm_model.base_model.distilbert.embeddings.word_embeddings
+    
+    # 获取预训练的token数量
+    pretrained_token_count = len(tokenizer.base_tokenizer) - len(tokenizer.user_tokens) - len(tokenizer.item_tokens) - len(tokenizer.category_tokens)
+    logger.info(f"预训练token数量: {pretrained_token_count}")
+    logger.info(f"总token数量: {len(tokenizer.base_tokenizer)}")
+    
+    # 解冻embedding中新增token的参数
+    embedding_layer.weight.requires_grad = True
+    weight_mask = torch.zeros_like(embedding_layer.weight, dtype=torch.bool)
+    weight_mask[pretrained_token_count:] = True
+    embedding_layer.weight.register_hook(lambda grad: grad * weight_mask)
+    
+    # 解冻并设置MLM预测头的训练
+    mlm_model.mlm_head.weight.requires_grad = True
+    head_mask = torch.zeros_like(mlm_model.mlm_head.weight, dtype=torch.bool)
+    head_mask[:, pretrained_token_count:] = True
+    mlm_model.mlm_head.weight.register_hook(lambda grad: grad * head_mask)
+    
+    # 打印可训练参数数量
+    trainable_params = sum(p.numel() for p in mlm_model.parameters() if p.requires_grad)
+    total_params = sum(p.numel() for p in mlm_model.parameters())
+    logger.info(f"可训练参数: {trainable_params:,d} / {total_params:,d} ({trainable_params/total_params:.2%})")
+    
+    if args.use_wandb:
+        wandb.log({
+            "trainable_params": trainable_params,
+            "total_params": total_params,
+            "trainable_ratio": trainable_params/total_params
+        })
     
     # 加载训练集和验证集
     train_dataset = SimpleMLMDataset(
