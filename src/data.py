@@ -672,6 +672,17 @@ def create_mlm_training_data(
     all_samples = []
     token_coverage_samples = []  # 专门用于确保token覆盖的样本
     
+    # 创建数据集实例
+    logger.info("初始化数据集...")
+    dataset = AmazonBeautyMLMDataset(
+        tokenizer=tokenizer,
+        metadata_file=metadata_file,
+        reviews_file=reviews_file,
+        max_length=max_length,
+        max_samples=max_samples,
+        seed=seed
+    )
+    
     # 如果需要确保所有token都被覆盖
     if ensure_all_tokens:
         logger.info("确保所有token都被覆盖...")
@@ -679,42 +690,61 @@ def create_mlm_training_data(
         # 1. 用户token覆盖
         logger.info(f"生成用户token样本 ({len(tokenizer.user_tokens)}个)...")
         for user_token in tqdm(tokenizer.user_tokens, desc="生成用户token样本"):
-            sample = f"{user_token} has interacted with several beauty products."
-            token_coverage_samples.append(sample)
+            # 提取用户ID
+            user_id = user_token.replace("[user_", "").replace("]", "")
+            # 获取用户的所有交互历史
+            user_items = list(dataset.user2items.get(user_id, set()) & dataset.valid_items)
+            if user_items:
+                # 使用所有交互物品
+                items_str = " ".join([f"[item_{item}]" for item in user_items])
+                # 生成包含完整交互历史的样本
+                sample = f"{user_token} has interacted with {items_str}."
+                token_coverage_samples.append(sample)
         
         # 2. 物品token覆盖
         logger.info(f"生成物品token样本 ({len(tokenizer.item_tokens)}个)...")
         for item_token in tqdm(tokenizer.item_tokens, desc="生成物品token样本"):
-            sample = f"Many users have purchased {item_token} which is a popular product."
-            token_coverage_samples.append(sample)
-        
-        # 3. 类别token覆盖
-        # 使用集合确保唯一性
-        unique_category_tokens = set(tokenizer.category_tokens)
-        logger.info(f"生成类别token样本 ({len(unique_category_tokens)}个)...")
-        for category_token in tqdm(unique_category_tokens, desc="生成类别token样本"):
-            # 确保每个类别token都被正确处理
-            # 有时类别token可能包含特殊字符，导致无法正确匹配
-            # 这里我们直接使用tokenizer中的类别token，而不是尝试构造
-            sample = f"This is a {category_token} product with high ratings."
-            token_coverage_samples.append(sample)
+            # 提取物品ID
+            item_id = item_token.replace("[item_", "").replace("]", "")
+            # 获取物品元数据和所有购买用户
+            meta = dataset.item2meta.get(item_id, {})
+            item_users = list(dataset.item2users.get(item_id, set()) & dataset.valid_users)
             
-            # 添加额外的样本，确保类别token被充分学习
-            sample2 = f"Products in {category_token} category are popular among customers."
-            token_coverage_samples.append(sample2)
+            if meta and item_users:
+                # 获取物品类别
+                categories = []
+                for cat_list in meta.get('categories', []):
+                    if isinstance(cat_list, list) and cat_list:
+                        # 获取完整的类别层次结构
+                        for i in range(len(cat_list)):
+                            # 构建从根到当前层级的完整路径
+                            current_path = cat_list[:i+1]
+                            full_path = " > ".join(current_path)
+                            category_token = f"[category_{dataset._safe_category_name(full_path)}]"
+                            categories.append(category_token)
+                
+                # 获取物品评分信息
+                reviews = dataset.item2reviews.get(item_id, [])
+                if reviews:
+                    ratings = [r.get('overall', 0) for r in reviews]
+                    avg_rating = sum(ratings) / len(ratings)
+                    num_reviews = len(reviews)
+                    
+                    # 生成包含所有用户信息的样本
+                    users_str = " ".join([f"[user_{user}]" for user in item_users])
+                    
+                    # 生成包含完整类别层次和用户列表的样本
+                    if categories:
+                        # 使用完整的类别层次结构
+                        category_hierarchy = " > ".join(categories)
+                        sample = f"{item_token} belongs to category hierarchy: {category_hierarchy}, with {avg_rating:.1f} average rating based on {num_reviews} reviews. It has been purchased by the following users: {users_str}."
+                    else:
+                        sample = f"{item_token} has received {avg_rating:.1f} average rating from {num_reviews} users. It has been purchased by: {users_str}."
+                    token_coverage_samples.append(sample)
     
-    # 创建数据集生成更多自然分布的样本
+    # 生成自然分布样本
     logger.info("生成自然分布样本...")
     natural_samples_count = max(0, max_samples - len(token_coverage_samples)) if max_samples else 10000
-    
-    dataset = AmazonBeautyMLMDataset(
-        tokenizer=tokenizer,
-        metadata_file=metadata_file,
-        reviews_file=reviews_file,
-        max_length=max_length,
-        max_samples=natural_samples_count,
-        seed=seed
-    )
     
     # 添加自然分布样本，并确保格式化一致
     for sample in dataset.text_samples:
@@ -763,7 +793,7 @@ def create_mlm_training_data(
 
 def _clean_and_normalize_text(text):
     """
-    清理和规范化文本，确保没有多行问题
+    清理和规范化文本，确保没有多行问题，但保留所有内容
     
     Args:
         text: 输入文本
@@ -783,17 +813,6 @@ def _clean_and_normalize_text(text):
     # 3. 确保特殊token（如[user_x]）前后有空格
     text = re.sub(r'(\S)(\[(?:user|item|category)_)', r'\1 \2', text)
     text = re.sub(r'(\])(\S)', r'\1 \2', text)
-    
-    # 4. 如果文本过长，进行截断但保留特殊token
-    if len(text) > 1000:  # 设置合理的长度限制
-        # 找到所有特殊token
-        special_tokens = re.findall(r'\[(?:user|item|category)_[^\]]+\]', text)
-        # 截断文本，但保留前3个特殊token和一些上下文
-        if special_tokens and len(special_tokens) > 3:
-            tokens_to_keep = special_tokens[:3]
-            # 创建一个包含这些token的摘要文本
-            summary = f"Text about {' '.join(tokens_to_keep)} and more..."
-            text = summary
     
     return text.strip()
 

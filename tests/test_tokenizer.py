@@ -219,6 +219,63 @@ def test_tokenizer_special_tokens():
             print(f"Encoded shape: {batch_encoded[0].shape}")
             print(f"Attention mask shape: {batch_encoded[1].shape}")
             
+        # 9. 测试文本保真度和特殊字符处理
+        print(f"\n9. Text Fidelity and Special Character Tests")
+        
+        # 测试包含逗号、括号和特殊格式的文本
+        test_cases = [
+            # 测试逗号后的空格保留
+            "This is a test, with commas, and spaces",
+            
+            # 测试产品评论格式
+            "[user_TEST] writes the review for [item_TEST], a [category_TEST] product: Look at the ingredients: Water, Aloe Vera, Glycerin",
+            
+            # 测试括号内的文本
+            "Contains (Certified Organic) ingredients and [special] tokens",
+            
+            # 测试数字和标点
+            "Rated 4.5 out of 5 stars, with 1,234 reviews!",
+            
+            # 测试长单词和专业术语
+            "Contains glycerin, propylparaben, and methylchloroisothiazolinone"
+        ]
+        
+        print("\nTesting text preservation in tokenization:")
+        for i, test_text in enumerate(test_cases, 1):
+            print(f"\nTest case {i}:")
+            print(f"Original: {test_text}")
+            
+            # 编码然后解码
+            encoded = tokenizer.encode_plus(test_text, return_tensors="pt")
+            decoded = tokenizer.decode(encoded['input_ids'][0])
+            
+            print(f"Decoded : {decoded}")
+            
+            # 检查关键特征是否保留
+            # 1. 逗号后的空格
+            if "," in test_text:
+                comma_spaces_original = len([x for x in test_text.split(",") if x.startswith(" ")])
+                comma_spaces_decoded = len([x for x in decoded.split(",") if x.startswith(" ")])
+                print(f"✓ Comma-space preservation: {comma_spaces_original == comma_spaces_decoded}")
+            
+            # 2. 特殊token完整性
+            if "[" in test_text and "]" in test_text:
+                tokens_original = [t for t in test_text.split() if t.startswith("[") and t.endswith("]")]
+                tokens_decoded = [t for t in decoded.split() if t.startswith("[") and t.endswith("]")]
+                print(f"✓ Special token preservation: {set(tokens_original) == set(tokens_decoded)}")
+            
+            # 3. 数字和小数点完整性
+            numbers_original = re.findall(r'\d+\.?\d*', test_text)
+            numbers_decoded = re.findall(r'\d+\.?\d*', decoded)
+            if numbers_original:
+                print(f"✓ Number preservation: {numbers_original == numbers_decoded}")
+            
+            # 4. 检查是否有不当的词分割（用#号分割）
+            if "#" in decoded:
+                print("⚠ Warning: Detected word splitting with # symbols")
+                split_words = [w for w in decoded.split() if "#" in w]
+                print(f"   Split words: {split_words}")
+        
         print("\nTests completed!")
         
     except Exception as e:

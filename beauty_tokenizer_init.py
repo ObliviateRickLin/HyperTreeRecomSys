@@ -8,7 +8,8 @@ from tqdm import tqdm
 # 配置日志
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    force=True  # 强制更新日志配置
 )
 logger = logging.getLogger(__name__)
 
@@ -35,12 +36,12 @@ def init_beauty_tokenizer(
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"找不到文件: {file_path}")
     
-    logger.info("=" * 50)
-    logger.info("开始初始化Beauty数据集tokenizer...")
-    logger.info(f"预训练模型: {pretrained_model_name}")
-    logger.info(f"metadata文件: {metadata_file}")
-    logger.info(f"reviews文件: {reviews_file}")
-    logger.info("=" * 50)
+    print("=" * 50)  # 使用print确保一定会输出
+    print("开始初始化Beauty数据集tokenizer...")
+    print(f"预训练模型: {pretrained_model_name}")
+    print(f"metadata文件: {metadata_file}")
+    print(f"reviews文件: {reviews_file}")
+    print("=" * 50)
     
     try:
         # 加载预训练模型的tokenizer
@@ -55,12 +56,38 @@ def init_beauty_tokenizer(
         os.makedirs(output_dir, exist_ok=True)
         tokenizer.save_pretrained(output_dir)
         
-        logger.info(f"Tokenizer已保存到: {output_dir}")
+        print(f"Tokenizer已保存到: {output_dir}")
         return tokenizer
         
     except Exception as e:
-        logger.error(f"初始化tokenizer时出错: {str(e)}")
+        print(f"初始化tokenizer时出错: {str(e)}")
         raise
 
 if __name__ == "__main__":
-    init_beauty_tokenizer() 
+    try:
+        print("开始初始化过程...")
+        tokenizer = init_beauty_tokenizer()
+        
+        # 打印token统计信息
+        print("\nTokenizer信息:")
+        print("-" * 30)
+        print(f"词表大小: {len(tokenizer.base_tokenizer):,}")
+        print(f"用户token数量: {len(tokenizer.user_tokens):,}")
+        print(f"物品token数量: {len(tokenizer.item_tokens):,}")
+        print(f"类别token数量: {len(tokenizer.category_tokens):,}")
+        print("-" * 30)
+        
+        # 测试tokenizer的基本功能
+        test_text = "这是一个测试文本 user_123 item_456 category_Beauty"
+        print("\n测试tokenizer功能:")
+        print(f"输入文本: {test_text}")
+        encoded = tokenizer.encode_plus(test_text)
+        print(f"编码结果: {encoded['input_ids']}")
+        print("=" * 50)
+        print("初始化完成！")
+        
+    except Exception as e:
+        print(f"运行失败: {str(e)}")
+        import traceback
+        print(traceback.format_exc())  # 打印完整的错误堆栈
+        raise 

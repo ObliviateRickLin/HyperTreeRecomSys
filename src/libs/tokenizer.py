@@ -8,6 +8,7 @@ from transformers import AutoTokenizer
 from tqdm import tqdm
 from collections import Counter
 import gzip
+from tokenizers import decoders
 
 logger = logging.getLogger(__name__)
 
@@ -365,7 +366,7 @@ class AmazonDistilBertTokenizer:
         return encoded["input_ids"], encoded["attention_mask"]
 
     def decode(self, *args, **kwargs):
-        """调用基础tokenizer的decode方法"""
+        """使用WordPiece decoder进行解码"""
         return self.base_tokenizer.decode(*args, **kwargs)
 
     def convert_tokens_to_ids(self, tokens):
