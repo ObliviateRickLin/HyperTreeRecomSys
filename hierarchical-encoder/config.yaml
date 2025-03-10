@@ -1,0 +1,30 @@
+# Data paths
+meta_file_path: "../data/meta_Beauty_2014.json.gz"
+reviews_file_path: "../data/reviews_Beauty_5.json.gz"
+dataset_output_dir: "datasets/amazon_beauty_with_reviews"
+
+# Pre-trained model
+model_path: "sentence-transformers/all-MiniLM-L12-v2"
+
+# Training config
+output_dir: "experiments"
+num_train_epochs: 10
+train_batch_size: 16
+eval_batch_size: 32
+learning_rate: 0.00001
+warmup_steps: 100
+random_seed: 42
+
+# Dataset splits
+test_size: 0.1
+val_size: 0.1
+
+# Negative samples
+use_hard_negatives: true
+num_negatives: 5
+
+# Loss function
+clustering_loss_weight: 1.0
+clustering_loss_margin: 3.0
+centripetal_loss_weight: 1.0
+centripetal_loss_margin: 0.5 

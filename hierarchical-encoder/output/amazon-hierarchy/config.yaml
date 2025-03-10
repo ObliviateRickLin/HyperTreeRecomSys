@@ -1,0 +1,13 @@
+centripetal_loss_margin: 0.5
+centripetal_loss_weight: 1.0
+clustering_loss_margin: 3.0
+clustering_loss_weight: 1.0
+data_dir: datasets/amazon_beauty_dataset/mixed
+eval_batch_size: 128
+learning_rate: 2.0e-05
+model_name: sentence-transformers/all-MiniLM-L12-v2
+num_epochs: 20
+output_dir: output/amazon-hierarchy
+seed: 42
+timestamp: 2025-03-10_13-26-29
+train_batch_size: 64

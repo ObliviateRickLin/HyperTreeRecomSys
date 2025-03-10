@@ -1,82 +1,88 @@
-# Amazon Beauty 层次编码器
+# Hierarchical Encoder
 
-基于HierarchyTransformers实现的Amazon Beauty产品层次编码器。
+This project implements a hierarchical encoder for product taxonomy classification based on the HierarchyTransformers framework. It is designed to encode product descriptions in a hierarchical structure that reflects the taxonomy relationships.
 
-## 简介
+## Prerequisites
 
-这个项目是对原有MLM模型的改进，使用超球面空间（Poincaré球）来编码产品和类别的层次结构。模型基于HiT（Hierarchy Transformer）框架，通过联合优化超球面聚类损失和超球面向心损失，学习产品和类别的层次结构。
-
-## 方法
-
-1. **实体表示**：使用产品和类别的文本名称及描述作为模型输入，而不是使用ID，保留语义信息。
-2. **层次关系**：构建类别-类别和类别-产品的层次关系，形成完整的层次结构。
-3. **超球面嵌入**：使用预训练语言模型编码器和Poincaré球，在超球面空间中表示层次关系。
-4. **层次损失**：
-   - 超球面聚类损失：将相关实体在超球面空间中聚集在一起，将无关实体分开。
-   - 超球面向心损失：确保父实体位于超球面空间中靠近原点的位置。
-
-## 目录结构
+Before running the training script, please make sure you have the following dependencies installed:
 
 ```
-hierarchical-encoder/
-├── src/
-│   ├── data.py                 # 数据处理
-│   ├── hierarchy_model.py      # 层次编码器模型
-│   ├── losses.py               # 损失函数
-│   ├── train.py                # 训练脚本
-│   └── evaluate.py             # 评估脚本
-├── run_hit_train.sh            # 训练运行脚本
-└── README.md                   # 项目说明
+torch
+sentence-transformers
+pandas
+numpy
+matplotlib
+tqdm
+pyyaml
+geoopt
 ```
 
-## 使用方法
+You can install these dependencies using pip:
 
-### 1. 安装依赖
-
-```bash
-pip install -r requirements.txt
-pip install geoopt  # 超球面几何计算库
+```
+pip install torch sentence-transformers pandas numpy matplotlib tqdm pyyaml geoopt
 ```
 
-### 2. 准备数据
+## Dataset
 
-模型使用Amazon Beauty元数据文件构建层次结构和训练数据。数据处理流程如下：
+The model is trained on the Amazon Beauty dataset with hard-negative samples. The dataset should be structured as follows:
 
-- 从元数据中提取产品类别层次结构
-- 为产品构建文本描述
-- 构建训练三元组（产品，父类别，非相关类别）
-- 区分直接关系和间接关系用于多跳推理和混合跳预测任务
-
-### 3. 训练模型
-
-```bash
-./run_hit_train.sh
+```
+datasets/
+  amazon_beauty_dataset/
+    mixed/
+      train.jsonl
+      val.jsonl
+      test.jsonl
+      entity_lexicon.json
 ```
 
-或者手动运行：
-
-```bash
-python -m src.train \
-  --meta_file data/meta_Beauty_2014.json.gz \
-  --output_dir models/hit \
-  --model_name "bert-base-uncased" \
-  --batch_size 256 \
-  --num_epochs 20
+Each line in the JSONL files should be a JSON object with the following structure:
+```json
+{
+  "child": "child_node_id",
+  "parent": "parent_node_id",
+  "hard_negatives": ["negative_node_id1", "negative_node_id2", ...],
+  "random_negatives": ["random_node_id1", "random_node_id2", ...]
+}
 ```
 
-### 4. 评估模型
+The `entity_lexicon.json` file should contain descriptions for each node in the taxonomy.
 
-```bash
-python -m src.evaluate \
-  --meta_file data/meta_Beauty_2014.json.gz \
-  --model_path models/hit \
-  --task mixedhop \
-  --negative_type random
+## Training
+
+To train the model, run the following command:
+
+```
+python run_train.py --data_dir=datasets/amazon_beauty_dataset/mixed --output_dir=output/amazon-hierarchy
 ```
 
-## 参考
+You can customize the training with the following arguments:
 
-本项目基于HierarchyTransformers框架实现，参考论文《Language Models as Hierarchy Encoders》。
+- `--data_dir`: Directory containing the dataset files
+- `--model_name`: Pre-trained model name or path (default: "sentence-transformers/all-MiniLM-L12-v2")
+- `--output_dir`: Directory to save the model and results
+- `--num_epochs`: Number of training epochs (default: 20)
+- `--train_batch_size`: Training batch size (default: 64)
+- `--eval_batch_size`: Evaluation batch size (default: 128)
+- `--learning_rate`: Learning rate (default: 2e-5)
+- `--seed`: Random seed (default: 42)
+- `--clustering_loss_weight`: Weight for clustering loss (default: 1.0)
+- `--clustering_loss_margin`: Margin for clustering loss (default: 3.0)
+- `--centripetal_loss_weight`: Weight for centripetal loss (default: 1.0)
+- `--centripetal_loss_margin`: Margin for centripetal loss (default: 0.5)
+
+## Model
+
+The model is based on HierarchyTransformer from the HierarchyTransformers framework, which extends SentenceTransformer models with hyperbolic geometry capabilities for better representing hierarchical relationships. 
+
+The training uses two main components for the loss function:
+1. HyperbolicClusteringLoss: Ensures that child entities are close to their parent entities
+2. HyperbolicCentripetalLoss: Ensures hierarchical properties by encouraging child entities to be "inside" their parent entities in the hyperbolic space
+
+## Evaluation
+
+The model is evaluated using standard classification metrics (precision, recall, F1) on the validation and test sets after each epoch. The best model based on F1 score is saved during training.
 
 ```
 @inproceedings{NEURIPS2024_1a970a3e,
