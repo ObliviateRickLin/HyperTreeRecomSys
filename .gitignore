@@ -49,9 +49,17 @@ wheels/
 .installed.cfg
 *.egg
 
+# Virtual Environment
+hierarchy_env/
+hierarchy_env_new/
+venv/
+ENV/
+
 # IDE
-.vscode/
 .idea/
+.vscode/
+*.swp
+*.swo
 
 # Logs and temporary files
 logs/
