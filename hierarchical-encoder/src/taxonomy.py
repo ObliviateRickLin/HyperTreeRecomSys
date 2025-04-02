@@ -25,6 +25,12 @@ logger = logging.getLogger(__name__)
 # 导入Taxonomy
 from deeponto.onto import Taxonomy
 
+# 定义固定路径
+BASE_DIR = "/u/home/r/ricklin/HyperTreeRecomSys"
+META_FILE = os.path.join(BASE_DIR, "data", "meta_Beauty_2014.json.gz")
+REVIEWS_FILE = os.path.join(BASE_DIR, "data", "reviews_Beauty_5.json.gz")
+OUTPUT_DIR = os.path.join(BASE_DIR, "hierarchical-encoder", "datasets", "amazon_beauty_dataset")
+
 class AmazonTaxonomy(Taxonomy):
     """
     Amazon产品层次结构分类法
@@ -32,13 +38,13 @@ class AmazonTaxonomy(Taxonomy):
     简化版本：不区分节点类型，只保留必要的描述属性。
     """
     
-    def __init__(self, meta_file_path, reviews_file_path):
+    def __init__(self, meta_file_path=META_FILE, reviews_file_path=REVIEWS_FILE):
         """
         从Amazon元数据和评论数据初始化分类法
         
         Args:
-            meta_file_path: Amazon元数据文件路径
-            reviews_file_path: Amazon评论数据文件路径
+            meta_file_path: Amazon元数据文件路径，默认使用预设路径
+            reviews_file_path: Amazon评论数据文件路径，默认使用预设路径
         """
         # 记录数据源
         self.meta_file_path = meta_file_path
@@ -216,4 +222,52 @@ class AmazonTaxonomy(Taxonomy):
     
     def get_node_id(self, original_id):
         """获取转换后的节点ID"""
-        return self.node_map.get(original_id) 
+        return self.node_map.get(original_id)
+    
+    def export_entity_lexicon(self, output_dir):
+        """
+        导出实体词典到entity_lexicon.json
+        
+        Args:
+            output_dir: 输出目录路径
+        """
+        entity_lexicon = {}
+        for node_id in self.graph.nodes:
+            if 'description' in self.graph.nodes[node_id]:
+                entity_lexicon[node_id] = self.graph.nodes[node_id]['description']
+        
+        # 确保输出目录存在
+        os.makedirs(output_dir, exist_ok=True)
+        output_path = os.path.join(output_dir, 'entity_lexicon.json')
+        
+        # 保存词典
+        with open(output_path, 'w', encoding='utf-8') as f:
+            json.dump(entity_lexicon, f, ensure_ascii=False, indent=2)
+        
+        logger.info(f"实体词典已保存到: {output_path}")
+        logger.info(f"词典包含 {len(entity_lexicon)} 个实体")
+        
+        return output_path
+
+if __name__ == "__main__":
+    # 设置日志级别为INFO
+    logging.getLogger(__name__).setLevel(logging.INFO)
+    
+    logger.info("=" * 60)
+    logger.info("开始生成实体词典")
+    logger.info("=" * 60)
+    
+    try:
+        # 构建分类法
+        taxonomy = AmazonTaxonomy()
+        # 导出词典
+        taxonomy.export_entity_lexicon(OUTPUT_DIR)
+        
+        logger.info("=" * 60)
+        logger.info("实体词典生成完成")
+        logger.info("=" * 60)
+    except Exception as e:
+        logger.error(f"生成实体词典时出错: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
+        sys.exit(1) 

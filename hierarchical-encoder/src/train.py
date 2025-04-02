@@ -29,14 +29,6 @@ logger.info("开始初始化训练脚本...")
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PARENT_DIR = os.path.dirname(ROOT_DIR)
 
-# 不再需要修正HierarchyTransformers的路径，直接使用已安装的包
-# HIERARCHY_TRANSFORMERS_PATH = os.path.join(PARENT_DIR, 'external', 'HierarchyTransformers', 'HierarchyTransformers', 'src')
-
-# 不再需要添加到Python路径
-# if os.path.exists(HIERARCHY_TRANSFORMERS_PATH) and HIERARCHY_TRANSFORMERS_PATH not in sys.path:
-#     sys.path.insert(0, HIERARCHY_TRANSFORMERS_PATH)
-#     logger.info(f"添加HierarchyTransformers路径到Python路径: {HIERARCHY_TRANSFORMERS_PATH}")
-
 # Import data loading function
 logger.info("开始导入本地模块...")
 try:

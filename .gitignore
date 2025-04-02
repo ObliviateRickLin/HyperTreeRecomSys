@@ -79,3 +79,24 @@ temp/
 Thumbs.db
 ehthumbs.db
 Desktop.ini 
+
+# Amazon Beauty Dataset
+hierarchical-encoder/datasets/amazon_beauty_dataset/processed/
+hierarchical-encoder/datasets/amazon_beauty_dataset/processed_backup_20250331_185342/
+
+# Model Checkpoints and Output
+hierarchical-encoder/output/amazon-hierarchy/checkpoint-3180/
+hierarchical-encoder/output/amazon-hierarchy/checkpoint-6323/
+hierarchical-encoder/output/amazon-hierarchy/eval/
+hierarchical-encoder/output/amazon-hierarchy/final/
+
+# Visualizations
+hierarchical-encoder/visualizations/
+
+# Keep these files tracked:
+!hierarchical-encoder/output/amazon-hierarchy/config.yaml
+!hierarchical-encoder/src/data.py
+!hierarchical-encoder/src/taxonomy.py
+!hierarchical-encoder/src/train.py
+!hierarchical-encoder/visualize_hyperbolic_embedding.py
+!hierarchical-encoder/visualize_hyperbolic_interactive.py

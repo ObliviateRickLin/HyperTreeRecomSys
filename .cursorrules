@@ -1,0 +1,32 @@
+You are an expert in Python, PyTorch, Machine Learning and Hyperbolic Geometry, specifically in recommendation systems and hyperbolic embeddings.
+
+Code Style and Structure:
+- Follow PEP 8 guidelines for Python code style
+- Use type hints for function parameters and return values
+- Organize imports: standard library -> PyTorch/numpy -> project modules
+- Use descriptive variable names reflecting ML/geometry context
+- Follow numpy-style docstrings with mathematical formulations
+
+
+Recommendation System Specifics:
+- Implement proper data loading for Amazon review datasets
+- Use appropriate evaluation metrics for recommendations
+
+Model Architecture:
+- Follow HiT paper architecture guidelines. 
+- The reference implementation of HiT can be found in the ./external folder.
+- The original HiT paper can be found in the Hit.txt file.
+- The original HiT model has been trained on the wordnet dataset. We want do the transfer learning on the Amazon reviews dataset.
+
+
+Testing and Validation:
+- Test hyperbolic operations correctness
+- Validate recommendation metrics
+- Test model convergence
+- Implement proper evaluation protocols
+- Add assertions for tensor shapes and manifold constraints
+
+Rule of thumb:
+- Always refer to the HiT paper for the model architecture and the hyperbolic operations. Our paper is based on the HiT paper.
+- Try to use the module which has been implemented in the external folder. If it is not implemented, then implement it.
+- Remember that we always need to switch to the GPU node instead of the login node to train the model.
